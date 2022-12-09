@@ -48,7 +48,7 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   auto GetEndValue() -> ValueType;
   void InsertFirstInit(const ValueType &old_page_id, const ValueType &new_page_id, const KeyType &key);
   auto InsertKeyAfterIt(const ValueType &left_page_id, const ValueType &right_page_id, KeyComparator &cmp, const KeyType &key) -> int;
-  void SplitDataTo(B_PLUS_TREE_INTERNAL_PAGE_TYPE *right_page);
+  void SplitDataTo(B_PLUS_TREE_INTERNAL_PAGE_TYPE *right_page, BufferPoolManager *buf);
   auto ChangeRoot() -> ValueType;
   void MergeWith(BPlusTreeInternalPage *other_page, int index_of_parent, BufferPoolManager *buf);
   auto DeleteInternal(int index) -> int;

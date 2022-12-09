@@ -77,22 +77,17 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::FindValueIndex(const ValueType &value) -> i
   return -1;
 }
 
-// TODO 可能有问题
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::FindLowerBound(const KeyType &key, const KeyComparator &cmp) const -> ValueType{
   // 二分查找大于key的index,通过return l - 1 来返回大于key的page_id
-  int l = 1;
-  int r = GetSize() - 1;
   assert(GetSize() > 1);
-  while (l <= r) {
-    int mid = (r - l) / 2 + l;
-    if (cmp(array_[mid].first, key) <= 0) {
-      l = mid + 1;
-    } else {
-      r = mid - 1;
-    }
+  int st = 1, ed = GetSize() - 1;
+  while (st <= ed) { //find the last key in array <= input
+    int mid = (ed - st) / 2 + st;
+    if (cmp(array_[mid].first,key) <= 0) st = mid + 1;
+    else ed = mid - 1;
   }
-  return array_[l - 1].second;
+  return array_[st - 1].second;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
@@ -112,28 +107,38 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertFirstInit(const ValueType &old_page_i
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertKeyAfterIt(const ValueType &left_page_id, const ValueType &right_page_id,
                                                       KeyComparator &cmp, const KeyType &key) -> int {
-  int index = FindLowerBound(key, cmp);
+  int index = FindValueIndex(left_page_id);
   int cur_size = GetSize();
   SetSize(++cur_size);
-  for (int idx = cur_size - 1; idx > index; --idx) {
+  for (int idx = cur_size - 1; idx > index + 1; --idx) {
     array_[idx].first = array_[idx - 1].first;
     array_[idx].second = array_[idx - 1].second;
   }
-  array_[index].first = key;
-  array_[index].second = right_page_id;
+  array_[index + 1].first = key;
+  array_[index + 1].second = right_page_id;
   return cur_size;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SplitDataTo(B_PLUS_TREE_INTERNAL_PAGE_TYPE *right_page) {
-  int cur_size = GetSize();
-  int index = cur_size / 2;
-  for (int idx = index; idx < cur_size; idx++) {
-    right_page->array_[idx - index].first = array_[idx].first;
-    right_page->array_[idx - index].second = array_[idx].second;
+void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SplitDataTo(B_PLUS_TREE_INTERNAL_PAGE_TYPE *right_page,
+                                                 BufferPoolManager *buf) {
+  assert(right_page != nullptr);
+  // assert(GetSize() == total);
+  // copy last half
+  int copyIdx = GetSize() / 2; // max:4 x,1,2,3,4 -> 2,3,4
+  page_id_t recipPageId = right_page->GetPageId();
+  for (int i = copyIdx; i < GetSize(); i++) {
+    right_page->array_[i - copyIdx].first = array_[i].first;
+    right_page->array_[i - copyIdx].second = array_[i].second;
+    //update children's parent page
+    auto childRawPage = buf->FetchPage(array_[i].second);
+    BPlusTreePage *childTreePage = reinterpret_cast<BPlusTreePage *>(childRawPage->GetData());
+    childTreePage->SetParentPageId(recipPageId);
+    buf->UnpinPage(array_[i].second,true);
   }
-  SetSize(index);
-  right_page->SetSize(cur_size - index);
+  //set size,is odd, bigger is last part
+  right_page->SetSize(GetSize() - copyIdx);
+  SetSize(copyIdx);
 }
 
 INDEX_TEMPLATE_ARGUMENTS
@@ -171,8 +176,11 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MergeWith(BPlusTreeInternalPage *other_page
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::DeleteInternal(int index) -> int {
   int cur_size = GetSize();
-  assert(index >= 0 && index <= GetSize());
-  memmove(array_ + index, array_ + index + 1, static_cast<size_t>((cur_size - index - 1) * sizeof(MappingType)));
+  assert(index >= 0 && index <= cur_size);
+  for (int i = index; i < cur_size - 1; i++) {
+    array_[i].first = array_[i + 1].first;
+    array_[i].second = array_[i + 1].second;
+  }
   IncreaseSize(-1);
   return GetSize();
 }
@@ -180,7 +188,10 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::DeleteInternal(int index) -> int {
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveLastToFrontOf(BPlusTreeInternalPage *other_page, BufferPoolManager *buf) {
   assert(parent_page_id_ == other_page->GetParentPageId());
-  memmove(other_page->array_ + 1, other_page->array_, other_page->GetSize()*sizeof(MappingType));
+  for (int i = GetSize(); i > 0; i--) {
+    other_page->array_[i].first = other_page->array_[i - 1].first;
+    other_page->array_[i].second = other_page->array_[i - 1].second;
+  }
 
   auto page = buf->FetchPage(parent_page_id_);
   auto parent_page = reinterpret_cast<BPlusTreeInternalPage *> (page->GetData());
@@ -214,7 +225,10 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveFrontToLastOf(BPlusTreeInternalPage *ot
   parent_page->SetKeyAt(index, KeyAt(1));
 
   assert(GetSize() - 1 > 0);
-  memmove(array_, array_ + 1, (GetSize() - 1)*sizeof(MappingType));
+  for (int i = 0; i < GetSize() - 1; i++) {
+    array_[i].first = array_[i + 1].first;
+    array_[i].second = array_[i + 1].second;
+  }
 
   auto child = buf->FetchPage(other_page->ValueAt(GetSize()));
   auto child_page = reinterpret_cast<BPlusTreePage *> (child->GetData());
