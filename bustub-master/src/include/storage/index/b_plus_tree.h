@@ -79,7 +79,7 @@ class BPlusTree {
 
   auto FetchPage(page_id_t page_id) -> BPlusTreePage*;
 
-  auto GetLeafNode(const KeyType &key) -> LeafPage*;
+  auto GetLeafNode(const KeyType &key, int iter = 0) -> LeafPage*;
 
   void ApplyNewRootPage(const KeyType &key, const ValueType &value);
 
@@ -90,10 +90,23 @@ class BPlusTree {
 
   void InsertKeyToParentPage(BPlusTreePage *leaf_page, BPlusTreePage *new_leaf_page, const KeyType &key);
 
+  template <class PageType>
+  auto MergeOrRedistribute(PageType *old_page) -> bool;
+
+  template <class PageType>
+  void AdjustRoot(PageType *old_root_page);
   /* Debug Routines for FREE!! */
   void ToGraph(BPlusTreePage *page, BufferPoolManager *bpm, std::ofstream &out) const;
 
   void ToString(BPlusTreePage *page, BufferPoolManager *bpm) const;
+
+  auto FindBrothers(BPlusTreePage *cur_page, BPlusTreePage **left_page, BPlusTreePage **right_page) -> int;
+
+  template <class PageType>
+  void Merge(PageType *original_page, BPlusTreePage *target_page, int index);
+
+  template <class PageType>
+  void Redistribute(PageType *original_page, BPlusTreePage *target_page, int index, bool IsLeft);
 
   // member variable
   std::string index_name_;

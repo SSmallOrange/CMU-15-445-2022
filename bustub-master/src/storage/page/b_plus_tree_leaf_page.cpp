@@ -10,9 +10,11 @@
 //===----------------------------------------------------------------------===//
 
 #include <sstream>
+#include <string.h>
 
 #include "common/exception.h"
 #include "common/rid.h"
+#include "storage/page/b_plus_tree_internal_page.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
 
 namespace bustub {
@@ -56,6 +58,17 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const -> KeyType {
 }
 
 INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::SetKeyAt(int index, const KeyType &key) {
+  array_[index].first = key;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::SetValueAt(int index, const ValueType &value) {
+  // replace with your own code
+  array_[index].second = value;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindKey(const KeyType &key,  ValueType &value,
                                                                    KeyComparator &cmp) -> bool {
   // 先找到当前key所在的索引
@@ -66,6 +79,26 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindKey(const KeyType &key,  ValueType &value,
     return true;
   }
   return false;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindValueIndex(const ValueType &value) -> int {
+  for (int i = 0; i < GetSize(); i++) {
+    if (array_[i].second == value) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindKeyIndex(const KeyType &key) -> int {
+  for (int i = 0; i < GetSize(); i++) {
+    if (array_[i].first == key) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
@@ -109,6 +142,67 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::SplitDataTo(B_PLUS_TREE_LEAF_PAGE_TYPE *new_lea
   new_leaf_page->SetSize(max_size_ - size_);
   new_leaf_page->next_page_id_ = next_page_id_;
   next_page_id_ = new_leaf_page->page_id_;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Delete(const KeyType &key, KeyComparator &cmp) -> int {
+  int index = FindkeyIndex(key, cmp);
+  int cur_size = GetSize();
+  if (index < cur_size && cmp(array_[index].first, key) == 0) {
+    memmove(array_ + index, array_ + index + 1, static_cast<size_t>((cur_size - index - 1) * sizeof(MappingType)));
+    IncreaseSize(-1);
+  }
+  return GetSize();
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::MergeWith(BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *other_page,
+                                           int index_of_parent,
+                                           BufferPoolManager *buf) {
+  int start = GetSize();
+  for (int i = 0; i < other_page->GetSize(); i++) {
+    array_[start + i].first = other_page->KeyAt(i);
+    array_[start + i].second = other_page->array_[i].second;
+  }
+  SetNextPageId(other_page->GetNextPageId());
+  SetSize(start + other_page->GetSize());
+  assert(start + other_page->GetSize() <= GetMaxSize());
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveLastToFrontOf(BPlusTreeLeafPage *other_page, BufferPoolManager *buf) {
+  memmove(other_page->array_ + 1, other_page->array_, GetSize()*sizeof(MappingType));
+  other_page->SetKeyAt(0, array_[GetSize() - 1].first);
+  other_page->SetValueAt(0, array_[GetSize() - 1].second);
+
+  auto page = buf->FetchPage(other_page->GetParentPageId());
+  auto parent_page = reinterpret_cast<BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> *> (page->GetData());
+
+  int index = parent_page->FindValueIndex(other_page->GetPageId());
+  parent_page->SetKeyAt(index, other_page->array_[0].first);
+  buf->UnpinPage(parent_page->GetPageId(), true);
+  IncreaseSize(-1);
+  other_page->IncreaseSize(1);
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveFrontToLastOf(BPlusTreeLeafPage *other_page, BufferPoolManager *buf) {
+  other_page->SetKeyAt(other_page->GetSize(), array_[0].first);
+  other_page->SetValueAt(other_page->GetSize(), array_[0].second);
+
+  auto page = buf->FetchPage(GetParentPageId());
+  auto parent_page = reinterpret_cast<BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> *> (page->GetData());
+
+  int index = parent_page->FindValueIndex(GetPageId());
+  parent_page->SetKeyAt(index, array_[1].first);
+  buf->UnpinPage(parent_page->GetPageId(), true);
+  IncreaseSize(-1);
+  other_page->IncreaseSize(1);
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetPair(int index) -> MappingType & {
+  return array_[index];
 }
 
 template class BPlusTreeLeafPage<GenericKey<4>, RID, GenericComparator<4>>;

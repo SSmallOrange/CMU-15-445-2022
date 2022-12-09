@@ -91,20 +91,14 @@ union obj {
     return temp;
   }
 
-
+void abc(int **a) {
+    *a = (*a) + 5;
+}
 
 int main(){
   int a[9] = {1,4,9,11,16,25,31,79,88};
-  int l = 0,r = 9;
-  while (l < r) {
-    int mid = (r - l) / 2 + l;
-    if (a[mid] < 26) {
-      l = mid + 1;
-    } else {
-      r = mid;
-    }
-  }
-  cout << l << endl;
-  assert(5 < 6);
+  int *ptr = a;
+  abc(&ptr);
+  cout << (*ptr) << endl;
   return 0;
 }

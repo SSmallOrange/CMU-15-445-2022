@@ -49,9 +49,19 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto GetNextPageId() const -> page_id_t;
   void SetNextPageId(page_id_t next_page_id);
   auto KeyAt(int index) const -> KeyType;
+  void SetKeyAt(int index, const KeyType &key);
+  void SetValueAt(int index, const ValueType &value);
   auto FindKey(const KeyType &key, ValueType &value, KeyComparator &cmp) -> bool;
+  auto FindValueIndex(const ValueType &value) -> int;
+  auto FindKeyIndex(const KeyType &key) -> int;
   auto Insert(const KeyType &key, const ValueType &value, KeyComparator &cmp) -> int;
   void SplitDataTo(B_PLUS_TREE_LEAF_PAGE_TYPE *new_leaf_page);
+  auto Delete(const KeyType &key, KeyComparator &cmp) -> int;
+  void MergeWith(BPlusTreeLeafPage *other_page, int index_of_parent, BufferPoolManager *buf);
+  void MoveLastToFrontOf(BPlusTreeLeafPage *other_page, BufferPoolManager *buf);
+  void MoveFrontToLastOf(BPlusTreeLeafPage *other_page, BufferPoolManager *buf);
+  auto GetPair(int index) -> MappingType &;
+
  private:
   auto FindkeyIndex(const KeyType &key, KeyComparator &cmp) -> int;
 

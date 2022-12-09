@@ -24,6 +24,7 @@ class IndexIterator {
  public:
   // you may define your own constructor based on your member variables
   IndexIterator();
+  IndexIterator(B_PLUS_TREE_LEAF_PAGE_TYPE *start, int index, BufferPoolManager *buf);
   ~IndexIterator();  // NOLINT
 
   auto IsEnd() -> bool;
@@ -38,6 +39,9 @@ class IndexIterator {
 
  private:
   // add your own private member variables here
+  B_PLUS_TREE_LEAF_PAGE_TYPE *leaf_page_;
+  BufferPoolManager *buf_;
+  int index_; //用来在page里移动
 };
 
 }  // namespace bustub

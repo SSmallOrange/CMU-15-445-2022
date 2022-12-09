@@ -35,16 +35,25 @@ namespace bustub {
 INDEX_TEMPLATE_ARGUMENTS
 class BPlusTreeInternalPage : public BPlusTreePage {
  public:
+  using InternalPage = BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator>;
   // must call initialize method after "create" a new node
   void Init(page_id_t page_id, page_id_t parent_id = INVALID_PAGE_ID, int max_size = INTERNAL_PAGE_SIZE);
 
   auto KeyAt(int index) const -> KeyType;
   void SetKeyAt(int index, const KeyType &key);
+  void SetValueAt(int index, const ValueType &value);
   auto ValueAt(int index) const -> ValueType;
+  auto FindValueIndex(const ValueType &value) -> int;
   auto FindLowerBound(const KeyType &key, const KeyComparator &cmp) const -> ValueType;
+  auto GetEndValue() -> ValueType;
   void InsertFirstInit(const ValueType &old_page_id, const ValueType &new_page_id, const KeyType &key);
   auto InsertKeyAfterIt(const ValueType &left_page_id, const ValueType &right_page_id, KeyComparator &cmp, const KeyType &key) -> int;
   void SplitDataTo(B_PLUS_TREE_INTERNAL_PAGE_TYPE *right_page);
+  auto ChangeRoot() -> ValueType;
+  void MergeWith(BPlusTreeInternalPage *other_page, int index_of_parent, BufferPoolManager *buf);
+  auto DeleteInternal(int index) -> int;
+  void MoveLastToFrontOf(BPlusTreeInternalPage *other_page, BufferPoolManager *buf);
+  void MoveFrontToLastOf(BPlusTreeInternalPage *other_page, BufferPoolManager *buf);
 
  private:
   // Flexible array member for page data.
