@@ -10,7 +10,6 @@
 //===----------------------------------------------------------------------===//
 
 #include <sstream>
-#include <string.h>
 
 #include "common/exception.h"
 #include "common/rid.h"
@@ -58,9 +57,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const -> KeyType {
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_LEAF_PAGE_TYPE::SetKeyAt(int index, const KeyType &key) {
-  array_[index].first = key;
-}
+void B_PLUS_TREE_LEAF_PAGE_TYPE::SetKeyAt(int index, const KeyType &key) { array_[index].first = key; }
 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_LEAF_PAGE_TYPE::SetValueAt(int index, const ValueType &value) {
@@ -69,8 +66,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::SetValueAt(int index, const ValueType &value) {
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindKey(const KeyType &key,  ValueType &value,
-                                                                   KeyComparator &cmp) -> bool {
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindKey(const KeyType &key, ValueType &value, KeyComparator &cmp) -> bool {
   // 先找到当前key所在的索引
   int index = FindkeyIndex(key, cmp);
   // 如果索引存在且和预期值相等，则将值返回并return true
@@ -104,11 +100,15 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindKeyIndex(const KeyType &key, KeyComparator 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 auto BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>::FindkeyIndex(const KeyType &key, KeyComparator &cmp) -> int {
   assert(GetSize() >= 0);
-  int st = 0, ed = GetSize() - 1;
-  while (st <= ed) { //find the last key in array <= input
+  int st = 0;
+  int ed = GetSize() - 1;
+  while (st <= ed) {  // find the last key in array <= input
     int mid = (ed - st) / 2 + st;
-    if (cmp(array_[mid].first,key) >= 0) ed = mid - 1;
-    else st = mid + 1;
+    if (cmp(array_[mid].first, key) >= 0) {
+      ed = mid - 1;
+    } else {
+      st = mid + 1;
+    }
   }
   return ed + 1;
 }
@@ -135,7 +135,6 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::SplitDataTo(B_PLUS_TREE_LEAF_PAGE_TYPE *new_lea
     new_leaf_page->array_[new_idx].first = array_[idx].first;
     new_leaf_page->array_[new_idx].second = array_[idx].second;
   }
-  // TODO 用GetSize来修改长度
   SetSize(GetSize() / 2);
   new_leaf_page->SetSize(max_size_ - size_);
   new_leaf_page->next_page_id_ = next_page_id_;
@@ -158,8 +157,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Delete(const KeyType &key, KeyComparator &cmp) 
 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_LEAF_PAGE_TYPE::MergeWith(BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *other_page,
-                                           int index_of_parent,
-                                           BufferPoolManager *buf) {
+                                           int index_of_parent, BufferPoolManager *buf) {
   int start = GetSize();
   for (int i = 0; i < other_page->GetSize(); i++) {
     array_[start + i].first = other_page->KeyAt(i);
@@ -181,7 +179,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveLastToFrontOf(BPlusTreeLeafPage *other_page
   other_page->SetValueAt(0, array_[GetSize() - 1].second);
 
   auto page = buf->FetchPage(other_page->GetParentPageId());
-  auto parent_page = reinterpret_cast<BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> *> (page->GetData());
+  auto parent_page = reinterpret_cast<BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> *>(page->GetData());
 
   int index = parent_page->FindValueIndex(other_page->GetPageId());
   parent_page->SetKeyAt(index, other_page->array_[0].first);
@@ -196,19 +194,17 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveFrontToLastOf(BPlusTreeLeafPage *other_page
   other_page->SetValueAt(other_page->GetSize(), array_[0].second);
 
   auto page = buf->FetchPage(GetParentPageId());
-  auto parent_page = reinterpret_cast<BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> *> (page->GetData());
-
+  auto parent_page = reinterpret_cast<BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> *>(page->GetData());
+  int idx = 1;
   int index = parent_page->FindValueIndex(GetPageId());
-  parent_page->SetKeyAt(index, array_[1].first);
+  parent_page->SetKeyAt(index, array_[idx].first);
   buf->UnpinPage(parent_page->GetPageId(), true);
   IncreaseSize(-1);
   other_page->IncreaseSize(1);
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetPair(int index) -> MappingType & {
-  return array_[index];
-}
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetPair(int index) -> MappingType & { return array_[index]; }
 
 template class BPlusTreeLeafPage<GenericKey<4>, RID, GenericComparator<4>>;
 template class BPlusTreeLeafPage<GenericKey<8>, RID, GenericComparator<8>>;

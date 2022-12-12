@@ -45,7 +45,7 @@ class IndexIterator {
   // add your own private member variables here
   B_PLUS_TREE_LEAF_PAGE_TYPE *leaf_page_;
   BufferPoolManager *buf_;
-  int index_; //用来在page里移动
+  int index_;  // 用来在page里移动
 };
 
 }  // namespace bustub

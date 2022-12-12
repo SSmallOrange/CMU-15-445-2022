@@ -53,7 +53,6 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   auto GetPages() -> Page * { return pages_; }
 
  public:
-
   void Display() {
     frame_id_t frame_id;
     for (int i = 0; i < 10; i++) {
@@ -64,9 +63,8 @@ class BufferPoolManagerInstance : public BufferPoolManager {
       }
     }
   }
-  auto FetchPg(page_id_t page_id) -> Page * {
-    return FetchPgImp(page_id);
-  }
+  auto FetchPg(page_id_t page_id) -> Page * { return FetchPgImp(page_id); }
+
  protected:
   /**
    * TODO(P1): Add implementation

@@ -77,18 +77,18 @@ class BPlusTree {
  private:
   void UpdateRootPageId(int insert_record = 0);
 
-  auto FetchPage(page_id_t page_id) -> BPlusTreePage*;
+  auto FetchPage(page_id_t page_id) -> BPlusTreePage *;
 
-  auto GetLeafNode(const KeyType &key, int iter = 0) -> LeafPage*;
+  auto GetLeafNode(const KeyType &key, int iter = 0) -> LeafPage *;
 
   void ApplyNewRootPage(const KeyType &key, const ValueType &value);
 
   auto InsertLeafInternal(const KeyType &key, const ValueType &value) -> bool;
 
   template <class PageType>
-  auto Split(PageType *leaf_page) -> PageType*;
+  auto Split(PageType *leaf_page) -> PageType *;
 
-  void InsertKeyToParentPage(BPlusTreePage *leaf_page, BPlusTreePage *new_leaf_page, const KeyType &key);
+  void InsertKeyToParentPage(BPlusTreePage *left_page, BPlusTreePage *right_page, const KeyType &key);
 
   template <class PageType>
   auto MergeOrRedistribute(PageType *old_page) -> bool;

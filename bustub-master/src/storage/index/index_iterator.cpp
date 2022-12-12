@@ -25,9 +25,7 @@ INDEX_TEMPLATE_ARGUMENTS
 auto INDEXITERATOR_TYPE::IsEnd() -> bool { return leaf_page_ == nullptr; }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto INDEXITERATOR_TYPE::operator*() -> const MappingType & {
-  return leaf_page_->GetPair(index_);
-}
+auto INDEXITERATOR_TYPE::operator*() -> const MappingType & { return leaf_page_->GetPair(index_); }
 
 INDEX_TEMPLATE_ARGUMENTS
 auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
@@ -38,7 +36,7 @@ auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
       index_ = -1;
     } else {
       auto page = buf_->FetchPage(page_id);
-      leaf_page_ = reinterpret_cast<B_PLUS_TREE_LEAF_PAGE_TYPE *> (page->GetData());
+      leaf_page_ = reinterpret_cast<B_PLUS_TREE_LEAF_PAGE_TYPE *>(page->GetData());
       assert(leaf_page_ != nullptr);
       index_ = 0;
     }
