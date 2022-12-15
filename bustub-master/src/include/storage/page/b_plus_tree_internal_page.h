@@ -51,7 +51,7 @@ class BPlusTreeInternalPage : public BPlusTreePage {
                         const KeyType &key) -> int;
   void SplitDataTo(B_PLUS_TREE_INTERNAL_PAGE_TYPE *right_page, BufferPoolManager *buf);
   auto ChangeRoot() -> ValueType;
-  void MergeWith(BPlusTreeInternalPage *other_page, int index_of_parent, BufferPoolManager *buf);
+  void MergeWith(BPlusTreePage *other_page_, int index_of_parent, BufferPoolManager *buf);
   auto DeleteInternal(int index) -> int;
   void MoveLastToFrontOf(BPlusTreeInternalPage *other_page, BufferPoolManager *buf);
   void MoveFrontToLastOf(BPlusTreeInternalPage *other_page, BufferPoolManager *buf);

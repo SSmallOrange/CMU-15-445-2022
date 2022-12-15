@@ -57,7 +57,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto Insert(const KeyType &key, const ValueType &value, KeyComparator &cmp) -> int;
   void SplitDataTo(B_PLUS_TREE_LEAF_PAGE_TYPE *new_leaf_page, BufferPoolManager *buf);
   auto Delete(const KeyType &key, KeyComparator &cmp) -> int;
-  void MergeWith(BPlusTreeLeafPage *other_page, int index_of_parent, BufferPoolManager *buf);
+  void MergeWith(BPlusTreePage *other_page_, int index_of_parent, BufferPoolManager *buf);
   void MoveLastToFrontOf(BPlusTreeLeafPage *other_page, BufferPoolManager *buf);
   void MoveFrontToLastOf(BPlusTreeLeafPage *other_page, BufferPoolManager *buf);
   auto GetPair(int index) -> MappingType &;

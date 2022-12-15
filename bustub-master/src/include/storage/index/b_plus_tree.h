@@ -74,6 +74,8 @@ class BPlusTree {
   // read data from file and remove one by one
   void RemoveFromFile(const std::string &file_name, Transaction *transaction = nullptr);
 
+  void Debug();
+
  private:
   void UpdateRootPageId(int insert_record = 0);
 
@@ -100,10 +102,14 @@ class BPlusTree {
 
   void ToString(BPlusTreePage *page, BufferPoolManager *bpm) const;
 
-  auto FindBrothers(BPlusTreePage *cur_page, BPlusTreePage **left_page, BPlusTreePage **right_page) -> int;
+  auto FindBrothers(BPlusTreePage *cur_page, BPlusTreePage **left_page, BPlusTreePage **right_page)
+      -> std::pair<int, int>;
 
-  template <class PageType>
-  void Merge(PageType *original_page, BPlusTreePage *target_page, int index);
+  auto SpecialFetchPage(page_id_t page_id) -> BPlusTreePage *;
+
+  void Merge(InternalPage *original_page, BPlusTreePage *target, int index, bool is_left);
+
+  void Merge(LeafPage *original_page, BPlusTreePage *target_page, int index, bool is_left);
 
   template <class PageType>
   void Redistribute(PageType *original_page, BPlusTreePage *target_page, int index, bool IsLeft);

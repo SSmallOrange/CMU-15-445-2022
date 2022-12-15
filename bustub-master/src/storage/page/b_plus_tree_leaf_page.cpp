@@ -156,13 +156,15 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Delete(const KeyType &key, KeyComparator &cmp) 
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_LEAF_PAGE_TYPE::MergeWith(BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *other_page,
+void B_PLUS_TREE_LEAF_PAGE_TYPE::MergeWith(BPlusTreePage *other_page_,
                                            int index_of_parent, BufferPoolManager *buf) {
+  auto other_page = static_cast<BPlusTreeLeafPage *>(other_page_);
   int start = GetSize();
-  for (int i = 0; i < other_page->GetSize(); i++) {
-    array_[start + i].first = other_page->KeyAt(i);
-    array_[start + i].second = other_page->array_[i].second;
-  }
+    for (int i = 0; i < other_page->GetSize(); i++) {
+      array_[start + i].first = other_page->KeyAt(i);
+      array_[start + i].second = other_page->array_[i].second;
+    }
+
   SetNextPageId(other_page->GetNextPageId());
   SetSize(start + other_page->GetSize());
   assert(start + other_page->GetSize() <= GetMaxSize());
@@ -193,9 +195,14 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveFrontToLastOf(BPlusTreeLeafPage *other_page
   other_page->SetKeyAt(other_page->GetSize(), array_[0].first);
   other_page->SetValueAt(other_page->GetSize(), array_[0].second);
 
+  for (int i = 0; i < GetSize() - 1; i++) {
+    array_[i].first = array_[i + 1].first;
+    array_[i].second = array_[i + 1].second;
+  }
+
   auto page = buf->FetchPage(GetParentPageId());
   auto parent_page = reinterpret_cast<BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> *>(page->GetData());
-  int idx = 1;
+  int idx = 0;
   int index = parent_page->FindValueIndex(GetPageId());
   parent_page->SetKeyAt(index, array_[idx].first);
   buf->UnpinPage(parent_page->GetPageId(), true);

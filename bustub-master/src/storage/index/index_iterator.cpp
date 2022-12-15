@@ -36,6 +36,7 @@ auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
       index_ = -1;
     } else {
       auto page = buf_->FetchPage(page_id);
+      buf_->UnpinPage(leaf_page_->GetPageId(), true);
       leaf_page_ = reinterpret_cast<B_PLUS_TREE_LEAF_PAGE_TYPE *>(page->GetData());
       assert(leaf_page_ != nullptr);
       index_ = 0;

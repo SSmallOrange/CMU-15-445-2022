@@ -62,9 +62,7 @@ class BPlusTreePage {
   void SetPageId(page_id_t page_id);
 
   void SetLSN(lsn_t lsn = INVALID_LSN);
-
   virtual ~BPlusTreePage() = default;
-
  protected:
   // member variable, attributes that both internal and leaf page share __attribute__((__unused__))
   IndexPageType page_type_;

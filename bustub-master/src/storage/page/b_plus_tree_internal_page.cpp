@@ -44,17 +44,11 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::KeyAt(int index) const -> KeyType {
 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetKeyAt(int index, const KeyType &key) {
-  if (index < 0 || index > GetSize() - 1) {
-    return;
-  }
   array_[index].first = key;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetValueAt(int index, const ValueType &value) {
-  if (index < 0 || index > GetSize() - 1) {
-    return;
-  }
   array_[index].second = value;
 }
 
@@ -68,10 +62,10 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueAt(int index) const -> ValueType { ret
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::FindValueIndex(const ValueType &value) -> int {
   for (int i = 0; i < GetSize(); i++) {
-    if (array_[i].second == value) {
-      return i;
-    }
+    if (value != ValueAt(i)) continue;
+    return i;
   }
+  std::cout << "page id :   " << page_id_ << " value  " << value << std::endl;
   return -1;
 }
 
@@ -149,24 +143,26 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::ChangeRoot() -> ValueType {
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MergeWith(BPlusTreeInternalPage *other_page, int index_of_parent,
+void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MergeWith(BPlusTreePage *other_page_, int index_of_parent,
                                                BufferPoolManager *buf) {
+  auto other_page = static_cast<BPlusTreeInternalPage *>(other_page_);
   Page *page = buf->FetchPage(other_page->GetParentPageId());
   assert(page != nullptr);
   int start = GetSize();
   auto parent_page = reinterpret_cast<BPlusTreeInternalPage *>(page->GetData());
-  array_[start].first =
-      parent_page->KeyAt(index_of_parent);  // 关键！指向当前节点的父节点的下标的key是当前节点0下标的key!
-  array_[start].second = other_page->ValueAt(0);
+
+  other_page->SetKeyAt(0, parent_page->KeyAt(index_of_parent));  // 关键！指向当前节点的父节点的下标的key是当前节点0下标的key!
+  // array_[start].second = other_page->ValueAt(0);
   buf->UnpinPage(parent_page->GetPageId(), false);
 
-  for (int i = 1; i < other_page->GetSize(); i++) {
+
+  for (int i = 0; i < other_page->GetSize(); i++) {
     array_[start + i].first = other_page->KeyAt(i);
     array_[start + i].second = other_page->ValueAt(i);
 
     Page *sufpage = buf->FetchPage(other_page->ValueAt(i));
     auto *child_page = reinterpret_cast<BPlusTreeInternalPage *>(sufpage->GetData());
-    child_page->SetParentPageId(parent_page_id_);
+    child_page->SetParentPageId(page_id_);
     buf->UnpinPage(array_[i].second, true);
   }
 
@@ -221,8 +217,11 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveFrontToLastOf(BPlusTreeInternalPage *ot
   auto parent_page = reinterpret_cast<BPlusTreeInternalPage *>(page->GetData());
   int index = parent_page->FindValueIndex(page_id_);
 
-  other_page->SetKeyAt(other_page->GetSize(), parent_page->KeyAt(index));
-  other_page->SetValueAt(other_page->GetSize(), ValueAt(0));
+
+  int xx = other_page->GetSize();
+  other_page->SetKeyAt(xx, parent_page->KeyAt(index));
+  other_page->SetValueAt(xx, ValueAt(0));
+  other_page->IncreaseSize(1);
 
   parent_page->SetKeyAt(index, KeyAt(1));
 
@@ -232,13 +231,12 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveFrontToLastOf(BPlusTreeInternalPage *ot
     array_[i].second = array_[i + 1].second;
   }
 
-  auto child = buf->FetchPage(other_page->ValueAt(GetSize()));
+  auto child = buf->FetchPage(other_page->ValueAt(GetSize() - 1));
   auto child_page = reinterpret_cast<BPlusTreePage *>(child->GetData());
   child_page->SetParentPageId(other_page->page_id_);
   buf->UnpinPage(child_page->GetPageId(), true);
   buf->UnpinPage(parent_page->GetPageId(), true);
   IncreaseSize(-1);
-  other_page->IncreaseSize(1);
 }
 
 // valuetype for internalNode should be page id_t
